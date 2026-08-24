@@ -686,15 +686,35 @@
                     const totalWeight = currentOrder.reduce((acc, it) => acc + (it.weight * it.quantity), 0);
                     document.getElementById("res-order-weight").innerText = `${totalWeight.toFixed(2)} kg`;
 
-                    // Calculate envelope dims
-                    let maxD1 = 0, maxD2 = 0, sumD3 = 0;
+                    // Calculate envelope dims matching multi-axis candidate strategies
+                    let s0_d0 = 0, s0_d1 = 0, s0_d2 = 0;
+                    let s1_d0 = 0, s1_d1 = 0, s1_d2 = 0;
+                    let s2_d0 = 0, s2_d1 = 0, s2_d2 = 0;
                     currentOrder.forEach(it => {
                         const dims = [it.length, it.width, it.height].sort((a, b) => a - b);
-                        maxD1 = Math.max(maxD1, dims[0]);
-                        maxD2 = Math.max(maxD2, dims[1]);
-                        sumD3 += dims[2] * it.quantity;
+                        s0_d0 += dims[0] * it.quantity;
+                        s0_d1 = Math.max(s0_d1, dims[1]);
+                        s0_d2 = Math.max(s0_d2, dims[2]);
+
+                        s1_d0 = Math.max(s1_d0, dims[0]);
+                        s1_d1 += dims[1] * it.quantity;
+                        s1_d2 = Math.max(s1_d2, dims[2]);
+
+                        s2_d0 = Math.max(s2_d0, dims[0]);
+                        s2_d1 = Math.max(s2_d1, dims[1]);
+                        s2_d2 += dims[2] * it.quantity;
                     });
-                    document.getElementById("res-order-envelope").innerText = `${maxD1} × ${maxD2} × ${sumD3} cm`;
+                    const env0 = [s0_d0, s0_d1, s0_d2].sort((a, b) => a - b);
+                    const env1 = [s1_d0, s1_d1, s1_d2].sort((a, b) => a - b);
+                    const env2 = [s2_d0, s2_d1, s2_d2].sort((a, b) => a - b);
+                    const candidates = [env0, env1, env2].sort((a, b) => {
+                        const volA = a[0] * a[1] * a[2], volB = b[0] * b[1] * b[2];
+                        if (volA !== volB) return volA - volB;
+                        if (a[2] !== b[2]) return a[2] - b[2];
+                        return (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2]);
+                    });
+                    const optimalEnv = candidates[0];
+                    document.getElementById("res-order-envelope").innerText = `${optimalEnv[0]} × ${optimalEnv[1]} × ${optimalEnv[2]} cm`;
 
                     statusBadge.className = "badge badge-green";
                     statusBadge.innerText = "Optimal Match Found";

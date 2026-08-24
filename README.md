@@ -85,9 +85,13 @@ $$\text{item} = [d_1, d_2, d_3], \quad \text{box} = [b_1, b_2, b_3] \quad (\text
 The box accommodates the item if and only if:
 $$d_1 \le b_1 \land d_2 \le b_2 \land d_3 \le b_3 \land W_{\text{total}} \le W_{\text{box\_max}}$$
 
-### 2. Single-Axis Stacking Heuristic
-- **Strategy**: Items are stacked along their tallest dimension (heights summed), while the base footprint takes the maximum length and width across all items.
-- **Trade-off**: This approach is conservative and deterministic. While it may occasionally recommend a slightly larger box compared to complex 3D bin-packing (NP-hard), it guarantees that items will physically fit and provides predictable packaging behavior for warehouse staff.
+### 2. Multi-Axis Candidate Packing Heuristic
+- **Strategy**: Evaluates 3 single-axis packing orientations to accommodate realistic physical stacking:
+  - **Short-Axis Stacking** ($\sum d_0 \times q, \max d_1, \max d_2$): Standard for stacking flat items (books, laptops, plates, apparel) by thickness.
+  - **Mid-Axis Stacking** ($\max d_0, \sum d_1 \times q, \max d_2$): Side-by-side row bundling.
+  - **Long-Axis Stacking** ($\max d_0, \max d_1, \sum d_2 \times q$): End-to-end alignment (useful for cylindrical/tubular boxes).
+- **Selection**: Candidate envelopes are sorted by compactness $(\text{Volume}, \text{Max Dimension}, \text{Sum Dimensions})$ and tested against available boxes to pick the cheapest box that fits any valid packing strategy.
+- **Trade-off**: This approach is deterministic, realistic, and fast ($O(B)$ where $B$ is the number of boxes). While general 3D bin-packing is NP-hard, multi-axis candidate evaluation guarantees physical fit without creating unrealistic tall stacks.
 
 ---
 

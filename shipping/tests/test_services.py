@@ -201,8 +201,47 @@ class RecommendBoxTests(TestCase):
         result = recommend_box(items)
 
         self.assertEqual(result.total_weight, Decimal("1.0"))
-        # Product dims sorted: [3, 5, 10]. With qty=2: envelope = (3, 5, 20)
-        self.assertEqual(result.required_dims, (Decimal("3"), Decimal("5"), Decimal("20")))
+        # Product dims sorted: [3, 5, 10]. With qty=2, short-axis stacking: (5, 6, 10)
+        self.assertEqual(result.required_dims, (Decimal("5"), Decimal("6"), Decimal("10")))
+
+    def test_flat_items_stack_by_thickness(self):
+        """Flat items like books should stack by thickness, not by length."""
+        book = self._create_product(name="Book", length=20, width=15, height=3, weight=0.4)
+        # 5 books stacked flat: 3*5 = 15 cm height, 15 cm width, 20 cm length -> envelope (15, 15, 20)
+        box = self._create_box(name="Medium Box", length=25, width=20, height=20, max_weight=5, cost=3)
+
+        items = self._create_order_with_items((book, 5))
+        result = recommend_box(items)
+
+        self.assertEqual(result.box, box)
+        self.assertEqual(result.required_dims, (Decimal("15"), Decimal("15"), Decimal("20")))
+
+    def test_long_narrow_items_bundle_side_by_side(self):
+        """Long items like fishing rods should bundle side-by-side."""
+        rod = self._create_product(name="Rod", length=150, width=2, height=1, weight=0.3)
+        # 3 rods bundled: (1*3=3, 2, 150) -> sorted (2, 3, 150)
+        long_box = self._create_box(name="Long Tube", length=160, width=5, height=5, max_weight=5, cost=6)
+
+        items = self._create_order_with_items((rod, 3))
+        result = recommend_box(items)
+
+        self.assertEqual(result.box, long_box)
+        self.assertEqual(result.required_dims, (Decimal("2"), Decimal("3"), Decimal("150")))
+
+    def test_side_by_side_box_selection(self):
+        """A wide flat box accommodates side-by-side items even if tall stack would exceed height."""
+        # 2 boxes of 30x20x15 cm side-by-side along mid-axis (20*2 = 40 cm width)
+        widget = self._create_product(name="Gadget", length=30, width=20, height=15, weight=1.0)
+        # Wide box: 45 x 35 x 18 cm (sorted: [18, 35, 45])
+        # Short axis stacking: 15*2 = 30 cm height -> envelope (20, 30, 30) -> fits in [18, 35, 45]? 20 > 18 (No)
+        # Mid axis stacking: 20*2 = 40 cm width -> envelope (15, 30, 40) -> fits in [18, 35, 45] (15<=18, 30<=35, 40<=45)!
+        wide_box = self._create_box(name="Wide Box", length=45, width=35, height=18, max_weight=10, cost=5)
+
+        items = self._create_order_with_items((widget, 2))
+        result = recommend_box(items)
+
+        self.assertEqual(result.box, wide_box)
+        self.assertEqual(result.required_dims, (Decimal("15"), Decimal("30"), Decimal("40")))
 
     def test_no_boxes_in_database(self):
         """When no boxes exist at all, result.box should be None."""

@@ -139,15 +139,15 @@ class StressTests(TestCase):
 
     def test_high_quantity_stacking_overflow(self):
         """
-        10 thin notebooks (25×20×0.5 cm, 0.2 kg).
-        Stacked: largest dim is 25, ×10 = 250 cm. No realistic box fits.
+        130 thin notebooks (25×20×0.5 cm, 0.1 kg each = 13 kg <= 20 kg max).
+        Stacked along thickness: 130 × 0.5 = 65 cm height > 60 cm max box length.
         """
-        notebook = self._product(name="Notebook", length=25, width=20, height=0.5, weight=0.2)
+        notebook = self._product(name="Notebook", length=25, width=20, height=0.5, weight=0.1)
         self._box(name="XL", length=60, width=40, height=35, max_weight=20, cost=8)
-        # Sorted: [0.5, 20, 25]. Stacked dim = 25*10 = 250. Envelope: [0.5, 20, 250]
-        # Box sorted: [35, 40, 60]. 250 > 60 ✗
+        # Sorted: [0.5, 20, 25]. Stacked thickness = 0.5*130 = 65. Envelope: [20, 25, 65]
+        # Box sorted: [35, 40, 60]. 65 > 60 ✗
 
-        result = recommend_box(self._items((notebook, 10)))
+        result = recommend_box(self._items((notebook, 130)))
         self.assertIsNone(result.box)
 
     # ── Multiple boxes — cost selection ──────────────────────────────
